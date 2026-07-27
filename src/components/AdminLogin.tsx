@@ -1,3 +1,6 @@
+Here is the complete, updated `AdminLogin.tsx` file. The passkey state has been restored, the payload adjusts dynamically based on whether it is a login or signup request, and the UI conditionally renders the passkey field only when the user switches to the "Sign Up" tab.
+
+```tsx
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -158,6 +161,7 @@ export default function AdminLogin() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passkey, setPasskey] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const navigate = useNavigate();
@@ -247,6 +251,7 @@ export default function AdminLogin() {
         : { 
             email, 
             password, 
+            passkey,
             name: fullName, 
             companyName, 
             companySize, 
@@ -555,6 +560,27 @@ export default function AdminLogin() {
                   </motion.div>
                 )}
               </div>
+
+              {/* Admin Session Passkey - ONLY SHOWS ON SIGN UP */}
+              {!isLogin && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="pt-2"
+                >
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                    Admin Passkey (Required)
+                  </label>
+                  <input 
+                    type="password" 
+                    value={passkey}
+                    onChange={(e) => setPasskey(e.target.value)}
+                    placeholder="Enter admin passkey"
+                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-lg focus:ring-1 focus:ring-rose-500 focus:border-rose-500 text-slate-100 placeholder-slate-600 transition-all outline-none text-sm"
+                    required={!isLogin} 
+                  />
+                </motion.div>
+              )}
               
               <button 
                 type="submit"
@@ -585,3 +611,5 @@ export default function AdminLogin() {
     </div>
   );
 }
+
+```
