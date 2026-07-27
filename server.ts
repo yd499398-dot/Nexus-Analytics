@@ -143,8 +143,7 @@ async function startServer() {
 
   app.post('/api/login', loginLimiter, async (req, res) => {
     try {
-      // You can also remove 'passkey' from the destructured req.body here
-      const { email, password } = req.body; 
+      const { email, password } = req.body;
       if (!email || !password) {
         return res.status(400).json({ error: 'Email and password required' });
       }
