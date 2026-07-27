@@ -143,7 +143,8 @@ async function startServer() {
 
   app.post('/api/login', loginLimiter, async (req, res) => {
     try {
-      const { email, password, passkey } = req.body;
+      // You can also remove 'passkey' from the destructured req.body here
+      const { email, password } = req.body; 
       if (!email || !password) {
         return res.status(400).json({ error: 'Email and password required' });
       }
@@ -151,9 +152,6 @@ async function startServer() {
       const result = await verifyUser(email, password);
       
       if (result.success) {
-        if (result.role === 'admin' && passkey !== '6598427') {
-          return res.status(401).json({ error: 'Admin passkey required for admin access.' });
-        }
         await addLoginLog(email, 'success');
         res.json({ success: true, role: result.role, name: result.name });
       } else {
