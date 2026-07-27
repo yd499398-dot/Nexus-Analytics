@@ -1,6 +1,3 @@
-Here is the complete, updated `AdminLogin.tsx` file. The passkey state has been restored, the payload adjusts dynamically based on whether it is a login or signup request, and the UI conditionally renders the passkey field only when the user switches to the "Sign Up" tab.
-
-```tsx
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
