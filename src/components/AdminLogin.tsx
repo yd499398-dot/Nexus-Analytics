@@ -158,7 +158,6 @@ export default function AdminLogin() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [passkey, setPasskey] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const navigate = useNavigate();
@@ -244,11 +243,10 @@ export default function AdminLogin() {
     try {
       const endpoint = isLogin ? '/api/login' : '/api/signup';
       const body = isLogin 
-        ? { email, password, passkey, isAdmin: true } 
+        ? { email, password, isAdmin: true } 
         : { 
             email, 
             password, 
-            passkey,
             name: fullName, 
             companyName, 
             companySize, 
@@ -558,21 +556,6 @@ export default function AdminLogin() {
                 )}
               </div>
               
-              {/* Admin Session Passkey */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                  Admin Passkey (Required)
-                </label>
-                <input 
-                  type="password" 
-                  value={passkey}
-                  onChange={(e) => setPasskey(e.target.value)}
-                  placeholder="Enter admin passkey"
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-lg focus:ring-1 focus:ring-rose-500 focus:border-rose-500 text-slate-100 placeholder-slate-600 transition-all outline-none text-sm"
-                  required
-                />
-              </div>
-              
               <button 
                 type="submit"
                 disabled={loading || (!isLogin && (!emailStatus.valid || !allCriteriaMet))}
@@ -602,4 +585,3 @@ export default function AdminLogin() {
     </div>
   );
 }
-
