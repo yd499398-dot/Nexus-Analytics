@@ -1,9 +1,9 @@
 import express from 'express';
-import cors from 'cors'; // 👈 1. IMPORT CORS
+import cors from 'cors';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
-import { verifyUser, registerUser, addLoginLog, getLogins, deleteUserAndLogins } from './db';
+import { verifyUser, registerUser, addLoginLog, getLogins, deleteUserAndLogins } from './db.ts';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
@@ -19,23 +19,23 @@ const ai = new GoogleGenAI({
 async function startServer() {
   const app = express();
   app.set('trust proxy', 1);
-  const PORT = process.env.PORT || 3000; // 👈 Uses Render's port dynamically
+  const PORT = process.env.PORT || 3000;
 
-  // 👈 2. ENABLE CORS MIDDLEWARE (Required for Vercel -> Render cross-origin calls)
+  // Enable CORS Middleware (Required for Vercel -> Render cross-origin calls)
   app.use(cors({
-    origin: '*', // Allows Vercel frontend requests
+    origin: '*',
     credentials: true,
   }));
 
   // Security Headers
   app.use(helmet({
-    contentSecurityPolicy: false, // Disabled for Vite HMR and dev server compatibility
+    contentSecurityPolicy: false,
   }));
 
   // Global Rate Limiting
   const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per `window`
+    max: 100,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests from this IP, please try again after 15 minutes' }
@@ -44,7 +44,7 @@ async function startServer() {
   // Login specific rate limiting
   const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 10, // Limit each IP to 10 login requests per window
+    max: 10,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many login attempts from this IP, please try again after 15 minutes' }
@@ -59,7 +59,6 @@ async function startServer() {
     try {
       let { email, password, name, companyName, companySize, companyRole, isAdmin, passkey } = req.body;
       
-      // Fix email casing and spacing immediately
       if (email) {
         email = email.trim().toLowerCase();
       }
@@ -77,7 +76,6 @@ async function startServer() {
         }
       }
 
-      // Email Format Check
       const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
       if (!emailRegex.test(email)) {
         return res.status(400).json({ error: 'Please enter a valid, active email address.' });
@@ -86,7 +84,6 @@ async function startServer() {
       const localPart = email.split('@')[0]?.toLowerCase();
       const domainPart = email.split('@')[1]?.toLowerCase();
       
-      // Strict list of disposable/throwaway or obvious test domains
       const disposableDomains = [
         'tempmail.com', 'mailinator.com', 'yopmail.com', 'test.com', 'example.com', 
         'fake.com', 'throwaway.com', 'dispostable.com', 'trashmail.com', 'sharklasers.com', 
@@ -94,8 +91,7 @@ async function startServer() {
       ];
       
       const fakePrefixes = ['test', 'fake', 'abc', 'asdf', 'qwer', '123', 'dummy', 'user', 'john.doe', 'johndoe', 'xyz', 'foo', 'bar'];
-      
-      const isRepeatedChar = /^(.)\1+$/.test(localPart); // e.g. "aaaa", "1111"
+      const isRepeatedChar = /^(.)\1+$/.test(localPart);
       
       if (disposableDomains.includes(domainPart)) {
         return res.status(400).json({ error: 'Corporate registration requires an active business or professional domain. Temporary or disposable email providers are not accepted.' });
@@ -105,7 +101,6 @@ async function startServer() {
         return res.status(400).json({ error: 'Please use an authentic professional email identity. Generic dummy or placeholder names are blocked.' });
       }
 
-      // Password strength validation
       const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
       if (!passRegex.test(password)) {
         return res.status(400).json({ 
@@ -117,7 +112,6 @@ async function startServer() {
         if (name && name.trim().length < 2) {
           return res.status(400).json({ error: 'Please enter your authentic full name (at least 2 characters).' });
         }
-
         if (companyName.trim().length < 2) {
           return res.status(400).json({ error: 'Please specify your company name (at least 2 characters).' });
         }
@@ -150,7 +144,6 @@ async function startServer() {
     try {
       let { email, password } = req.body;
 
-      // Fix email casing and spacing before checking the database
       if (email) {
         email = email.trim().toLowerCase();
       }
@@ -187,7 +180,6 @@ async function startServer() {
     try {
       let { email } = req.params;
 
-      // Ensure the delete route also normalizes the email
       if (email) {
         email = email.trim().toLowerCase();
       }
@@ -203,7 +195,6 @@ async function startServer() {
     }
   });
 
-  // API Route for Attrition Analysis
   app.post('/api/analyze-attrition', async (req, res) => {
     try {
       const { 
@@ -275,17 +266,17 @@ async function startServer() {
                 items: {
                   type: Type.OBJECT,
                   properties: {
-                    step: { type: Type.STRING, description: 'Step description (translated in ' + langName + ')' },
-                    condition: { type: Type.STRING, description: 'Condition evaluated (translated in ' + langName + ')' },
-                    outcome: { type: Type.STRING, description: 'Outcome of this step (translated in ' + langName + ')' },
+                    step: { type: Type.STRING, description: 'Step description' },
+                    condition: { type: Type.STRING, description: 'Condition evaluated' },
+                    outcome: { type: Type.STRING, description: 'Outcome of this step' },
                   },
                 },
-                description: 'Step-by-step decision path reflecting a decision tree logic',
+                description: 'Step-by-step decision path',
               },
               recommendations: {
                 type: Type.ARRAY,
                 items: { type: Type.STRING },
-                description: 'Actionable recommendations for HR (translated in ' + langName + ')',
+                description: 'Actionable recommendations for HR',
               },
             },
             required: ['riskLevel', 'riskScore', 'decisionPath', 'recommendations'],
@@ -393,7 +384,6 @@ async function startServer() {
     }
   });
 
-  // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
