@@ -3,7 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
-import { verifyUser, registerUser, addLoginLog, getLogins, deleteUserAndLogins } from './db.ts';
+import { verifyUser, registerUser, addLoginLog, getLogins, deleteUserAndLogins } from './db';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
