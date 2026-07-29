@@ -242,6 +242,52 @@ export default function AdminLogin() {
     setLoading(true);
     setErrorMsg('');
     try {
+      // FIX APPLIED HERE: Pointing Vite explicitly to the Express server port in dev mode
+      const API_BASE = import.meta.env.MODE === 'development' ? 'http://localhost:3000' : '';
+      const endpoint = isLogin ? `${API_BASE}/api/login` : `${API_BASE}/api/signup`;
+      
+      const body = isLogin 
+        ? { email, password, isAdmin: true } 
+        : { 
+            email, 
+            password, 
+            passkey,
+            name: fullName, 
+            companyName, 
+            companySize, 
+            companyRole, 
+            isAdmin: true 
+          };
+      
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        if (data.role !== 'admin') {
+          setErrorMsg('Access denied. Administrator privileges required.');
+        } else {
+          localStorage.setItem('userEmail', email);
+          localStorage.setItem('userRole', data.role);
+          const finalName = data.name || fullName || 'Admin Colleague';
+          localStorage.setItem('userFullName', finalName);
+          navigate('/app/stats');
+        }
+      } else {
+        setErrorMsg(data.error || 'Authentication failed');
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMsg('Network error. Check connection.');
+    } finally {
+      setLoading(false);
+    }
+  };
+    try {
       const endpoint = isLogin ? '/api/login' : '/api/signup';
       const body = isLogin 
         ? { email, password, isAdmin: true } 
