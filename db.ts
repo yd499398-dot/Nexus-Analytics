@@ -1,40 +1,51 @@
 import { MongoClient, ServerApiVersion } from 'mongodb';
 import bcrypt from 'bcrypt';
 
-// 1. Connect to MongoDB Atlas
 const MONGODB_URI = process.env.MONGODB_URI;
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(MONGODB_URI || '', {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
-});
-
-let db: any;
-
-async function connectDB() {
-  // Only connect if we haven't already
-  if (!db) {
-    if (!MONGODB_URI) {
-      console.warn('WARNING: MONGODB_URI environment variable is missing.');
-      return null;
-    }
-    try {
-      await client.connect();
-      // You can name your database here (e.g., "NexusAnalytics")
-      db = client.db("NexusAnalytics"); 
-      console.log('Successfully connected to MongoDB Atlas!');
-    } catch (error) {
-      console.error('MongoDB connection error:', error);
-    }
-  }
-  return db;
+if (!MONGODB_URI) {
+  console.warn('WARNING: MONGODB_URI environment variable is missing.');
 }
 
-// 2. Exported Functions for server.ts
+// Global variable to cache the client across Vercel serverless function calls
+let cachedClient: MongoClient | null = null;
+let cachedDb: any = null;
+
+async function connectDB() {
+  if (cachedDb) {
+    return cachedDb;
+  }
+
+  if (!MONGODB_URI) {
+    return null;
+  }
+
+  if (!cachedClient) {
+    cachedClient = new MongoClient(MONGODB_URI, {
+      serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+      },
+      connectTimeoutMS: 10000, // Prevents hanging indefinitely
+      socketTimeoutMS: 45000,
+    });
+  }
+
+  try {
+    await cachedClient.connect();
+    cachedDb = cachedClient.db("NexusAnalytics");
+    console.log('Successfully connected to MongoDB Atlas!');
+    return cachedDb;
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    cachedClient = null;
+    cachedDb = null;
+    return null;
+  }
+}
+
+// Exported Functions for server.ts
 export async function registerUser(
   email: string, 
   passwordPlain: string, 
@@ -50,11 +61,9 @@ export async function registerUser(
 
     const usersCollection = database.collection('users');
     
-    // Check if user exists
     const existingUser = await usersCollection.findOne({ email });
     if (existingUser) return false; 
     
-    // Hash password and save
     const passwordHash = await bcrypt.hash(passwordPlain, 10);
     await usersCollection.insertOne({
       email, 
@@ -117,7 +126,6 @@ export async function getLogins() {
     if (!database) return [];
 
     const loginsCollection = database.collection('logins');
-    // Sort by newest first
     return await loginsCollection.find().sort({ loginTime: -1 }).toArray();
   } catch (error) {
     console.error('Error in getLogins:', error);
