@@ -174,7 +174,10 @@ export default function Login() {
     
     setLoading(true);
     try {
-      const endpoint = isLogin ? '/api/login' : '/api/signup';
+      // FIX APPLIED HERE: Pointing Vite explicitly to the Express server port in dev mode
+      const API_BASE = import.meta.env.MODE === 'development' ? 'http://localhost:3000' : '';
+      const endpoint = isLogin ? `${API_BASE}/api/login` : `${API_BASE}/api/signup`;
+      
       const payload = { email, password };
 
       const res = await fetch(endpoint, {
@@ -251,7 +254,7 @@ export default function Login() {
                 className={`absolute inset-y-1 w-[calc(50%-4px)] bg-white rounded-md shadow-sm transition-transform duration-300 ease-out ${isLogin ? 'left-1' : 'translate-x-[calc(100%+8px)] left-1'}`}
               />
             </div>
- 
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <AnimatePresence mode="popLayout">
                 {errorMsg && (
@@ -266,7 +269,7 @@ export default function Login() {
                    </motion.div>
                 )}
               </AnimatePresence>
- 
+
               {/* Email Address */}
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
@@ -308,7 +311,7 @@ export default function Login() {
                   </button>
                 </div>
               </div>
- 
+
               <button 
                 type="submit"
                 disabled={loading}
