@@ -1,12 +1,15 @@
 {
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/api/:path*",
-      "destination": "https://nexus-analytics-k3w2.onrender.com/api/:path*"
-    },
+      "src": "server.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
     {
-      "source": "/((?!api/|.*\\..*).*)",
-      "destination": "/index.html"
+      "src": "/(.*)",
+      "destination": "server.ts"
     }
   ]
 }
