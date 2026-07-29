@@ -12,10 +12,9 @@ import {
   EyeOff,
   CheckCircle2,
   XCircle,
-  AlertCircle,
   ShieldAlert
 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage, LanguageSwitcher } from './LanguageContext';
 
 const formLabels: Record<string, Record<string, string>> = {
@@ -205,7 +204,7 @@ export default function AdminLogin() {
       setEmailStatus({ valid: true, reason: 'empty' });
       return;
     }
-
+    // Simple frontend fallback validation
     setEmailStatus({ valid: true, reason: 'ok' });
   }, [email]);
 
@@ -242,53 +241,10 @@ export default function AdminLogin() {
     setLoading(true);
     setErrorMsg('');
     try {
-      // FIX APPLIED HERE: Pointing Vite explicitly to the Express server port in dev mode
+      // FIX APPLIED HERE: Vite proxy handling for local development vs production
       const API_BASE = import.meta.env.MODE === 'development' ? 'http://localhost:3000' : '';
       const endpoint = isLogin ? `${API_BASE}/api/login` : `${API_BASE}/api/signup`;
       
-      const body = isLogin 
-        ? { email, password, isAdmin: true } 
-        : { 
-            email, 
-            password, 
-            passkey,
-            name: fullName, 
-            companyName, 
-            companySize, 
-            companyRole, 
-            isAdmin: true 
-          };
-      
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      
-      const data = await res.json();
-      
-      if (res.ok) {
-        if (data.role !== 'admin') {
-          setErrorMsg('Access denied. Administrator privileges required.');
-        } else {
-          localStorage.setItem('userEmail', email);
-          localStorage.setItem('userRole', data.role);
-          const finalName = data.name || fullName || 'Admin Colleague';
-          localStorage.setItem('userFullName', finalName);
-          navigate('/app/stats');
-        }
-      } else {
-        setErrorMsg(data.error || 'Authentication failed');
-      }
-    } catch (err) {
-      console.error(err);
-      setErrorMsg('Network error. Check connection.');
-    } finally {
-      setLoading(false);
-    }
-  };
-    try {
-      const endpoint = isLogin ? '/api/login' : '/api/signup';
       const body = isLogin 
         ? { email, password, isAdmin: true } 
         : { 
@@ -509,130 +465,109 @@ export default function AdminLogin() {
 
                 {/* Real-time Email Validity Explanation banner */}
                 {!isLogin && email && !emailStatus.valid && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: -2 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-1.5 text-xs text-rose-400 font-medium flex items-center space-x-1"
-                  >
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span>
-                      {emailStatus.reason === 'disposable' && f.domainAlert}
-                      {emailStatus.reason === 'fake_prefix' && f.prefixAlert}
-                      {emailStatus.reason === 'invalid_format' && "Please input a valid format, e.g. name@company.com"}
-                    </span>
-                  </motion.div>
+                  <div className="mt-2 p-2 bg-rose-500/10 border border-rose-500/20 rounded-md text-xs text-rose-400">
+                    {emailStatus.reason === 'disposable' && f.domainAlert}
+                    {emailStatus.reason === 'fake_prefix' && f.prefixAlert}
+                  </div>
                 )}
               </div>
-              
-              {/* Password */}
+
+              {/* Password Field */}
               <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                  {isLogin ? t('sec_key') : f.passLabel}
+                  {f.passLabel}
                 </label>
                 <div className="relative">
                   <input 
                     type={showPassword ? "text" : "password"} 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-4 pr-10 py-3 bg-slate-950 border border-slate-800 rounded-lg focus:ring-1 focus:ring-rose-500 focus:border-rose-500 text-slate-100 placeholder-slate-600 transition-all outline-none text-sm"
+                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-lg focus:ring-1 focus:ring-rose-500 focus:border-rose-500 text-slate-100 placeholder-slate-600 transition-all outline-none text-sm"
                     required
                   />
                   <button 
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-slate-500 hover:text-rose-500 transition-colors"
-                    title={showPassword ? "Hide Password" : "Show Password"}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-200 transition-colors"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
+              </div>
 
-                {/* Password Criteria Checklist */}
-                {!isLogin && password.length > 0 && (
+              {/* Real-time Password Criteria Tracker (Only visible during registration) */}
+              <AnimatePresence>
+                {!isLogin && (
                   <motion.div 
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
-                    className="mt-3 p-3 bg-slate-950/60 border border-slate-800 rounded-lg text-xs text-slate-400 space-y-2 shadow-inner"
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-1.5 mt-2 bg-slate-900/50 p-3 rounded-lg border border-slate-800/50"
                   >
-                    <p className="font-semibold text-slate-300 flex items-center">
-                      <span>{f.passCriteria}</span>
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 font-medium">
-                      <div className="flex items-center space-x-1.5">
-                        {criteria.length ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        ) : (
-                          <div className="w-3.5 h-3.5 border border-slate-700 rounded-full shrink-0" />
-                        )}
-                        <span className={criteria.length ? 'text-emerald-400 font-semibold' : ''}>{f.charMin}</span>
-                      </div>
-                      <div className="flex items-center space-x-1.5">
-                        {criteria.upper ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        ) : (
-                          <div className="w-3.5 h-3.5 border border-slate-700 rounded-full shrink-0" />
-                        )}
-                        <span className={criteria.upper ? 'text-emerald-400 font-semibold' : ''}>{f.charUpper}</span>
-                      </div>
-                      <div className="flex items-center space-x-1.5">
-                        {criteria.lower ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        ) : (
-                          <div className="w-3.5 h-3.5 border border-slate-700 rounded-full shrink-0" />
-                        )}
-                        <span className={criteria.lower ? 'text-emerald-400 font-semibold' : ''}>{f.charLower}</span>
-                      </div>
-                      <div className="flex items-center space-x-1.5">
-                        {criteria.num ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        ) : (
-                          <div className="w-3.5 h-3.5 border border-slate-700 rounded-full shrink-0" />
-                        )}
-                        <span className={criteria.num ? 'text-emerald-400 font-semibold' : ''}>{f.charNum}</span>
-                      </div>
-                      <div className="flex items-center space-x-1.5 sm:col-span-2">
-                        {criteria.special ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        ) : (
-                          <div className="w-3.5 h-3.5 border border-slate-700 rounded-full shrink-0" />
-                        )}
-                        <span className={criteria.special ? 'text-emerald-400 font-semibold' : ''}>{f.charSpecial}</span>
-                      </div>
+                    <p className="text-xs font-semibold text-slate-400 mb-2">{f.passCriteria}:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <p className={`text-[11px] flex items-center ${criteria.length ? 'text-emerald-400' : 'text-slate-500'}`}>
+                        {criteria.length ? <CheckCircle2 className="w-3 h-3 mr-1.5" /> : <div className="w-3 h-3 rounded-full border border-slate-600 mr-1.5" />}
+                        {f.charMin}
+                      </p>
+                      <p className={`text-[11px] flex items-center ${criteria.upper ? 'text-emerald-400' : 'text-slate-500'}`}>
+                        {criteria.upper ? <CheckCircle2 className="w-3 h-3 mr-1.5" /> : <div className="w-3 h-3 rounded-full border border-slate-600 mr-1.5" />}
+                        {f.charUpper}
+                      </p>
+                      <p className={`text-[11px] flex items-center ${criteria.lower ? 'text-emerald-400' : 'text-slate-500'}`}>
+                        {criteria.lower ? <CheckCircle2 className="w-3 h-3 mr-1.5" /> : <div className="w-3 h-3 rounded-full border border-slate-600 mr-1.5" />}
+                        {f.charLower}
+                      </p>
+                      <p className={`text-[11px] flex items-center ${criteria.num ? 'text-emerald-400' : 'text-slate-500'}`}>
+                        {criteria.num ? <CheckCircle2 className="w-3 h-3 mr-1.5" /> : <div className="w-3 h-3 rounded-full border border-slate-600 mr-1.5" />}
+                        {f.charNum}
+                      </p>
+                      <p className={`text-[11px] flex items-center ${criteria.special ? 'text-emerald-400' : 'text-slate-500'}`}>
+                        {criteria.special ? <CheckCircle2 className="w-3 h-3 mr-1.5" /> : <div className="w-3 h-3 rounded-full border border-slate-600 mr-1.5" />}
+                        {f.charSpecial}
+                      </p>
                     </div>
                   </motion.div>
                 )}
-              </div>
+              </AnimatePresence>
 
-              {/* Admin Session Passkey - ONLY SHOWS ON SIGN UP */}
-              {!isLogin && (
-                <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="pt-2"
-                >
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                    Admin Passkey (Required)
-                  </label>
-                  <input 
-                    type="password" 
-                    value={passkey}
-                    onChange={(e) => setPasskey(e.target.value)}
-                    placeholder="Enter admin passkey"
-                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-lg focus:ring-1 focus:ring-rose-500 focus:border-rose-500 text-slate-100 placeholder-slate-600 transition-all outline-none text-sm"
-                    required={!isLogin} 
-                  />
-                </motion.div>
-              )}
-              
+              {/* Admin Passkey Field (Only required for Admin Sign up) */}
+              <AnimatePresence>
+                {!isLogin && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                  >
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                      Admin Authorization Passkey
+                    </label>
+                    <input 
+                      type="password" 
+                      value={passkey}
+                      onChange={(e) => setPasskey(e.target.value)}
+                      placeholder="Enter the 7-digit system passkey"
+                      className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-lg focus:ring-1 focus:ring-rose-500 focus:border-rose-500 text-slate-100 placeholder-slate-600 transition-all outline-none text-sm"
+                      required={!isLogin}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Submit Button */}
               <button 
-                type="submit"
-                disabled={loading || (!isLogin && (!emailStatus.valid || !allCriteriaMet))}
-                className="w-full py-3 px-4 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-medium shadow-lg shadow-rose-900/20 transition-all flex items-center justify-center disabled:opacity-70 group mt-2"
+                type="submit" 
+                disabled={loading}
+                className="w-full py-3.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-medium shadow-[0_0_20px_rgba(225,29,72,0.3)] transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed group mt-4"
               >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                {loading ? (
                   <>
-                    {isLogin ? t('authenticate') : t('reg_admin')}
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    {f.validating}
+                  </>
+                ) : (
+                  <>
+                    {isLogin ? t('login') : 'Register Identity'}
                     <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
@@ -640,18 +575,7 @@ export default function AdminLogin() {
             </form>
           </div>
         </div>
-        
-        <div className="flex items-center justify-between mt-8 text-sm">
-          <Link to="/" className="text-slate-500 hover:text-slate-300 transition-colors">
-            &larr; {t('std_login')}
-          </Link>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>
-            <span className="text-slate-500 tracking-wide text-xs">{t('high_sec_zone')}</span>
-          </div>
-        </div>
       </motion.div>
     </div>
   );
 }
-
