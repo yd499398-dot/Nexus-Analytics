@@ -7,14 +7,18 @@ import { verifyUser, registerUser, addLoginLog, getLogins, deleteUserAndLogins }
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
+// FIX: Make AI initialization optional so it doesn't crash Vercel if the key is missing
+let ai: any = null;
+if (process.env.GEMINI_API_KEY) {
+  ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      },
     },
-  },
-});
+  });
+}
 
 const app = express();
 app.set('trust proxy', 1);
@@ -47,8 +51,6 @@ const loginLimiter = rateLimit({
 
 app.use(express.json());
 app.use('/api', globalLimiter);
-
-// --- ALL YOUR API ROUTES REMAIN EXACTLY THE SAME ---
 
 app.post('/api/signup', loginLimiter, async (req, res) => {
   try {
@@ -186,6 +188,18 @@ app.delete('/api/users/:email', async (req, res) => {
 
 app.post('/api/analyze-attrition', async (req, res) => {
   try {
+    // FIX: If there is no API key, bypass the AI and return generic data so the app doesn't crash
+    if (!ai) {
+      return res.json({
+        riskLevel: "Medium",
+        riskScore: 50,
+        decisionPath: [
+          { step: "System Check", condition: "AI Disabled", outcome: "Using Default Analysis" }
+        ],
+        recommendations: ["Add a GEMINI_API_KEY environment variable to enable full AI insights."]
+      });
+    }
+
     const { salary, commute, satisfaction, role, tenure, overTime, jobInvolvement, lang, emailVolumeDecline, emailAfterHours, emailSentimentRisk, emailResponseDelay } = req.body;
 
     const langNames: Record<string, string> = {
@@ -247,7 +261,6 @@ app.post('/api/analyze-attrition', async (req, res) => {
   }
 });
 
-// --- VERCEL COMPATIBILITY FIX ---
 // Only start the full server if we are NOT running on Vercel
 if (!process.env.VERCEL) {
   (async () => {
