@@ -383,12 +383,14 @@ async function startServer() {
       });
     }
   });
+  // Replace the bottom listen block with this:
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
 
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
+export default app;
     app.use(vite.middlewares);
     
     app.get('*', (req, res) => {
