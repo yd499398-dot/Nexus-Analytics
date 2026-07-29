@@ -57,8 +57,13 @@ async function startServer() {
 
   app.post('/api/signup', loginLimiter, async (req, res) => {
     try {
-      const { email, password, name, companyName, companySize, companyRole, isAdmin, passkey } = req.body;
+      let { email, password, name, companyName, companySize, companyRole, isAdmin, passkey } = req.body;
       
+      // Fix email casing and spacing immediately
+      if (email) {
+        email = email.trim().toLowerCase();
+      }
+
       if (isAdmin) {
         if (!email || !password || !companyName) {
           return res.status(400).json({ error: 'Email, password, and company name are required for admin registration.' });
@@ -143,7 +148,13 @@ async function startServer() {
 
   app.post('/api/login', loginLimiter, async (req, res) => {
     try {
-      const { email, password } = req.body;
+      let { email, password } = req.body;
+
+      // Fix email casing and spacing before checking the database
+      if (email) {
+        email = email.trim().toLowerCase();
+      }
+
       if (!email || !password) {
         return res.status(400).json({ error: 'Email and password required' });
       }
@@ -174,7 +185,13 @@ async function startServer() {
 
   app.delete('/api/users/:email', async (req, res) => {
     try {
-      const { email } = req.params;
+      let { email } = req.params;
+
+      // Ensure the delete route also normalizes the email
+      if (email) {
+        email = email.trim().toLowerCase();
+      }
+
       if (!email) {
         return res.status(400).json({ error: 'Email parameter is required' });
       }
